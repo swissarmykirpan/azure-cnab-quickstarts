@@ -1,0 +1,71 @@
+mixins:
+    - azure
+    - az
+  
+  name: ShabadOSAPI
+  version: 0.1.0
+  description: "ShabadOS API Porter Bundle"
+  invocationimage: shabados/shabadosapi-installer:0.1.0
+  tag: shabados/shabadosapi:0.1.0
+  
+  credentials:
+  - name: SUBSCRIPTION_ID
+    env: AZURE_SUBSCRIPTION_ID
+  - name: TENANT_ID
+    env: AZURE_TENANT_ID
+  - name: CLIENT_ID
+    env: AZURE_CLIENT_ID
+  - name: CLIENT_SECRET
+    env: AZURE_CLIENT_SECRET
+  
+  parameters:
+  - name: resource_group
+    type: string
+    default: shabados
+  
+  - name: location
+    type: string
+    default: uksouth
+  
+  - name: storage_account_name
+    type: string
+    default: shabados
+  
+  - name: git_version
+    type: string
+    default: 0.1.0
+  install:
+    - azure:
+        description: "Create Azure Storage Account"
+        type: storage
+        name: tech50ltdwebsite
+        resourceGroup: "{{ bundle.parameters.resource_group }}"
+        parameters:
+          location: "{{ bundle.parameters.location }}"
+          storageAccountName: "{{ bundle.parameters.storage_account_name }}"
+        outputs:
+          - name: "STORAGE_ACCOUNT_KEY"
+            key: "STORAGE_ACCOUNT_KEY"
+  
+  uninstall:
+    - az:
+        description: "Login"
+        arguments:
+          - login
+        flags: 
+          service-principal:
+          username: "{{ bundle.credentials.CLIENT_ID }}"
+          password: "{{ bundle.credentials.CLIENT_SECRET }}"
+          tenant: "{{ bundle.credentials.TENANT_ID }}"
+        
+    - az:
+        description: "Delete Azure Storage Account"
+        arguments:
+          - storage
+          - account
+          - delete
+        flags:
+          name: "{{ bundle.parameters.storage_account_name }}"
+          subscription: "{{ bundle.credentials.SUBSCRIPTION_ID }}"
+          resource-group: "{{ bundle.parameters.resource_group }}"
+          'yes': null

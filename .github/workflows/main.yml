@@ -10,11 +10,8 @@ on:
 
 jobs:
   build-and-publish:
-    if: "!contains(github.event.head_commit.message, '***NO_CI***')"
     name: Build & Publish
     runs-on: ubuntu-latest
-    env:
-      RUN_PUBLISH_STEPS: ${{ secrets.REGISTRY_SERVER != '' && secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' && secrets.GITHUB_TOKEN != '' }}
     steps:
       - name: '[DEBUG] Echo environment variables'
         run: 'gci Env:'
@@ -36,7 +33,7 @@ jobs:
         id: calculate_version
         uses: endjin/CNAB.Quickstarts.GitHub.Actions/calculate-version@v1
         with:
-          manifest_path: porter/airflow/porter.yaml
+          manifest_path: porter.yaml
           branch: ${{ steps.get_branch_name.outputs.branch_name }}
 
       - name: Install latest version of Porter and mixins
@@ -47,13 +44,13 @@ jobs:
         id: install_porter_mixins
         uses: endjin/CNAB.Quickstarts.GitHub.Actions/install-porter-mixins@v1
         with:
-          manifest_path: porter/airflow/porter.yaml
+          manifest_path: porter.yaml
 
       - name: Patch version and registry for bundle and invocation image
         id: replace_version_and_registry
         uses: endjin/CNAB.Quickstarts.GitHub.Actions/replace-version-and-registry@v1
         with:
-          manifest_path: porter/airflow/porter.yaml
+          manifest_path: porter.yaml
           version: ${{ steps.calculate_version.outputs.version }}
           tag: ${{ steps.calculate_version.outputs.version }}
           registry: ${{ secrets.REGISTRY_SERVER || 'gurpreet.azurecr.io' }}
@@ -61,18 +58,16 @@ jobs:
       - name: Build Porter bundle
         id: build_porter_bundle
         run: porter build
-        working-directory: porter/airflow
 
       - name: Publish Porter bundle and invocation image
         id: publish_porter_bundle
         run: porter publish
-        working-directory: porter/airflow
 
       - name: Patch bundle and invocation image tags with 'latest'
         id: replace_tag_with_latest
         uses: endjin/CNAB.Quickstarts.GitHub.Actions/replace-version-and-registry@v1
         with:
-          manifest_path: porter/airflow/porter.yaml
+          manifest_path: porter.yaml
           version: ${{ steps.calculate_version.outputs.version }}
           tag: 'latest'
           registry: ${{ secrets.REGISTRY_SERVER || 'gurpreet.azurecr.io' }}
